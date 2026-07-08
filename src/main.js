@@ -9,6 +9,61 @@ function assetUrl(path) {
   return `${import.meta.env.BASE_URL}${path}`;
 }
 
+const BACKGROUNDS = [
+  {
+    variable: '--hero-bg-image',
+    path: 'images/arriere-plan/background-univers-denis.jpg',
+    targets: ['.pv-hero-bg', '.pv-contact-bg'],
+    priority: 'high',
+  },
+  {
+    variable: '--explore-bg-image',
+    path: 'images/arriere-plan/background-explore.jpg',
+    targets: ['.pv-transition-explore .pv-transition-bg'],
+  },
+  {
+    variable: '--web-bg-image',
+    path: 'images/arriere-plan/background-appli.jpg',
+    targets: ['.pv-transition-web .pv-transition-bg'],
+  },
+  {
+    variable: '--design-bg-image',
+    path: 'images/arriere-plan/background-graphic-design.jpg',
+    targets: ['.pv-transition-design .pv-transition-bg'],
+  },
+];
+
+function markBackgroundLoaded(selectors) {
+  const apply = () => selectors.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((el) => el.classList.add('is-loaded'));
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply, { once: true });
+  } else {
+    apply();
+  }
+}
+
+function setupBackgrounds() {
+  BACKGROUNDS.forEach(({ variable, path }) => {
+    document.documentElement.style.setProperty(variable, `url(${assetUrl(path)})`);
+  });
+}
+
+function preloadBackgrounds() {
+  BACKGROUNDS.forEach(({ path, targets, priority }) => {
+    const img = new Image();
+    if (priority === 'high' && 'fetchPriority' in img) img.fetchPriority = 'high';
+    img.decoding = 'async';
+    img.onload = () => markBackgroundLoaded(targets);
+    img.onerror = () => markBackgroundLoaded(targets);
+    img.src = assetUrl(path);
+  });
+}
+
+setupBackgrounds();
+preloadBackgrounds();
+
 function youtubeId(urlOrId) {
   if (!/[/?]/.test(urlOrId)) return urlOrId;
   const match = urlOrId.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^?&/]+)/);
@@ -26,11 +81,27 @@ function youtubeThumbUrl(id) {
 function ensureCarouselImage(item) {
   const img = item.querySelector('img:not(.pv-video-thumb)');
   if (!img) return;
+
+  const reveal = () => img.classList.add('is-ready');
+
   const pendingSrc = img.getAttribute('data-src');
-  if (!pendingSrc) return;
-  img.src = pendingSrc;
-  img.removeAttribute('data-src');
-  img.removeAttribute('loading');
+  if (pendingSrc) {
+    img.addEventListener('load', reveal, { once: true });
+    img.src = pendingSrc;
+    img.removeAttribute('data-src');
+    img.removeAttribute('loading');
+    return;
+  }
+
+  if (img.complete && img.naturalWidth > 0) reveal();
+  else img.addEventListener('load', reveal, { once: true });
+}
+
+function preloadCarouselNeighbors(items, modIndex) {
+  const len = items.length;
+  [modIndex, (modIndex + 1) % len, (modIndex - 1 + len) % len].forEach((index) => {
+    ensureCarouselImage(items[index]);
+  });
 }
 
 function buildCarouselItems(container, images, type) {
@@ -103,26 +174,6 @@ function setActiveVideoPreview(items, activeIndex) {
 }
 
 function init() {
-  const heroBg = document.querySelector('.pv-hero-bg');
-  const contactBg = document.querySelector('.pv-contact-bg');
-  const heroImage = `url(${assetUrl('images/arriere-plan/background-univers-denis.png')})`;
-
-  if (heroBg || contactBg) {
-    document.documentElement.style.setProperty('--hero-bg-image', heroImage);
-  }
-
-  const transitionBackgrounds = [
-    { selector: '.pv-transition-explore', variable: '--explore-bg-image', path: 'images/arriere-plan/background-explore.jpg' },
-    { selector: '.pv-transition-web', variable: '--web-bg-image', path: 'images/arriere-plan/background-appli.jpg' },
-    { selector: '.pv-transition-design', variable: '--design-bg-image', path: 'images/arriere-plan/background-graphic-design.jpg' },
-  ];
-
-  transitionBackgrounds.forEach(({ selector, variable, path }) => {
-    if (document.querySelector(`${selector} .pv-transition-bg`)) {
-      document.documentElement.style.setProperty(variable, `url(${assetUrl(path)})`);
-    }
-  });
-
   document.querySelectorAll('.hand-title').forEach((title) => {
     const revealTitle = () => title.classList.add('is-revealed');
     if (!('IntersectionObserver' in window)) {
@@ -265,8 +316,8 @@ function init() {
       const modIndex = ((currentIndex % items.length) + items.length) % items.length;
       items.forEach((item, i) => {
         item.classList.toggle('is-active', i === modIndex);
-        if (i === modIndex) ensureCarouselImage(item);
       });
+      preloadCarouselNeighbors(items, modIndex);
       if (options.onActiveChange) options.onActiveChange(items, modIndex);
     }
 
@@ -313,6 +364,7 @@ function init() {
 
       const targetIndex = pools[Math.floor(Math.random() * pools.length)];
       historySeen.push(targetIndex);
+      ensureCarouselImage(items[targetIndex]);
 
       let step = 0;
       const totalSteps = 18 + Math.floor(Math.random() * 8);

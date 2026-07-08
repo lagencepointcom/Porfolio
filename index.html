@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - Denis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Manrope:wght@400;500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="custom-cursor"></div>
+    <div class="camera-flash"></div>
+
+    <div class="pv-lightbox" id="lightbox">
+        <span class="pv-lightbox-close" id="lightboxClose">&times;</span>
+        <img src="" alt="Zoom" class="pv-lightbox-img" id="lightboxImg">
+    </div>
+
+    <main>
+        <section class="pv-hero">
+            <div class="pv-hero-bg" aria-hidden="true"></div>
+            <div class="pv-hero-overlay" aria-hidden="true"></div>
+            <div class="pv-hero-inner">
+                <div class="pv-hero-text">
+                    <div class="title-wrapper">
+                        <h1 class="flash-typo">Bienvenue dans l'univers de Denis.</h1>
+                    </div>
+                    <p class="pv-story">Basé dans la Broye depuis plus de 15 ans, je suis un homme de terrain.</p>
+                    <p class="pv-dim">Tournez la roue pour explorer mon univers.</p>
+                </div>
+                
+                <div class="wheel-trigger" data-target-value="PHOTOS" data-scroll-to="motion-photos">
+                    <div class="wheel-window">
+                        <div class="wheel-reel"></div>
+                    </div>
+                    <div class="spin-instruction">CLIQUEZ POUR LANCER LA ROUE</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="motion-photos" class="pv-portfolio-section photo-zone">
+            <h2>Portfolio Photos</h2>
+            <p style="color:var(--txt);">Faites glisser de gauche à droite, ou laissez-vous surprendre.</p>
+            <div class="pv-carousel-wrap pv-carousel-flat">
+                <div class="pv-carousel-container"></div>
+            </div>
+            <button class="spin-trigger-btn">Choisissez une photo aléatoire</button>
+        </section>
+
+        <section class="pv-transition-zone pv-transition-explore">
+            <div class="pv-transition-bg" aria-hidden="true"></div>
+            <div class="pv-transition-overlay" aria-hidden="true"></div>
+            <div class="pv-transition-inner">
+                <div class="title-wrapper title-wrapper--block">
+                    <h2 class="hand-title">Continuer l'exploration ?</h2>
+                </div>
+                <p class="pv-story">Mon parcours de danseur et de professeur de danse m'a inculqué la rigueur du mouvement et l'importance d'une image qui percute dès le premier regard.</p>
+                <div class="wheel-trigger" data-target-value="VIDÉO" data-scroll-to="motion-video">
+                    <div class="wheel-window">
+                        <div class="wheel-reel"></div>
+                    </div>
+                    <div class="spin-instruction">RETOURNER LA ROUE</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="motion-video" class="pv-portfolio-section video-zone">
+            <h2>Productions Vidéo</h2>
+            <p style="color:var(--txt);">Faites glisser de gauche à droite, ou laissez-vous surprendre.</p>
+            <div class="pv-carousel-wrap pv-carousel-flat pv-carousel-video">
+                <div class="pv-carousel-container"></div>
+            </div>
+            <button class="spin-trigger-btn">Choisissez une vidéo aléatoire</button>
+        </section>
+
+        <section class="pv-transition-zone pv-transition-web">
+            <div class="pv-transition-bg" aria-hidden="true"></div>
+            <div class="pv-transition-overlay" aria-hidden="true"></div>
+            <div class="pv-transition-inner">
+                <div class="title-wrapper title-wrapper--block">
+                    <h2 class="hand-title">Poursuivre la visite ?</h2>
+                </div>
+                <p class="pv-story">En dehors de mon travail, j'élève des chevaux Franches-Montagnes et des Welsh Cobs. Cette passion m'impose patience, rigueur et un sens du détail sans faille. On ne triche pas avec un cheval.</p>
+                <div class="wheel-trigger" data-target-value="WEB & APPLI" data-scroll-to="motion-web">
+                    <div class="wheel-window">
+                        <div class="wheel-reel"></div>
+                    </div>
+                    <div class="spin-instruction">RETOURNER LA ROUE</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="motion-web" class="pv-portfolio-section web-zone">
+            <h2>Sites Internet & Applications</h2>
+            <p style="color:var(--txt);">Aperçu des plateformes et architectures SaaS.</p>
+            <div class="pv-carousel-wrap pv-carousel-flat">
+                <div class="pv-carousel-container"></div>
+            </div>
+            <button class="spin-trigger-btn">Choisissez un site web aléatoire</button>
+        </section>
+
+        <section class="pv-transition-zone pv-transition-design">
+            <div class="pv-transition-bg" aria-hidden="true"></div>
+            <div class="pv-transition-overlay" aria-hidden="true"></div>
+            <div class="pv-transition-inner">
+                <div class="title-wrapper title-wrapper--block">
+                    <h2 class="hand-title">Dernière étape ?</h2>
+                </div>
+                <p class="pv-story">Je ne travaille pas pour vivre, mais je vis pour mon travail.</p>
+                <div class="wheel-trigger" data-target-value="GRAPHISME" data-scroll-to="motion-design">
+                    <div class="wheel-window">
+                        <div class="wheel-reel"></div>
+                    </div>
+                    <div class="spin-instruction">RETOURNER LA ROUE</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="motion-design" class="pv-portfolio-section design-zone">
+            <h2>Identités Graphiques & Design</h2>
+            <p style="color:var(--txt);">Créations de marques, logos et chartes visuelles.</p>
+            <div class="pv-carousel-wrap pv-carousel-flat">
+                <div class="pv-carousel-container"></div>
+            </div>
+            <button class="spin-trigger-btn">Choisissez une création graphique aléatoire</button>
+        </section>
+
+        <section class="pv-contact">
+            <div class="pv-contact-bg" aria-hidden="true"></div>
+            <div class="pv-contact-overlay" aria-hidden="true"></div>
+            <div class="pv-contact-inner">
+                <div class="title-wrapper title-wrapper--block">
+                    <h2 class="hand-title">Envie de me contacter ?</h2>
+                </div>
+                <div class="pv-contact-links">
+                    <a class="pv-contact-link" href="mailto:denispuerro@icloud.com">denispuerro@icloud.com</a>
+                    <a class="pv-contact-link" href="tel:+4178951774">+4178951774</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

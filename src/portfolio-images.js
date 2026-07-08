@@ -80,7 +80,15 @@ export const portfolioImages = {
     "images/portfolio-photos/82.png",
     "images/portfolio-photos/83.png",
     "images/portfolio-photos/84.png",
-    "images/portfolio-photos/85.png"
+    "images/portfolio-photos/85.png",
+    "images/portfolio-photos/figaro.jpg",
+    "images/portfolio-photos/figaro2.jpg",
+    "images/portfolio-photos/figaro3.jpg",
+    "images/portfolio-photos/figaro5.jpg",
+    "images/portfolio-photos/figaro6.jpg",
+    "images/portfolio-photos/figaro7.jpg",
+    "images/portfolio-photos/figaro8.jpg",
+    "images/portfolio-photos/figaro9.jpg"
   ],
   "graphisme": [
     "images/graphisme/7XybaROC5H0.png",

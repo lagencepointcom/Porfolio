@@ -23,21 +23,41 @@ function youtubeThumbUrl(id) {
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 }
 
+function ensureCarouselImage(item) {
+  const img = item.querySelector('img:not(.pv-video-thumb)');
+  if (!img) return;
+  const pendingSrc = img.getAttribute('data-src');
+  if (!pendingSrc) return;
+  img.src = pendingSrc;
+  img.removeAttribute('data-src');
+  img.removeAttribute('loading');
+}
+
 function buildCarouselItems(container, images, type) {
-  container.innerHTML = images.map((src) => {
+  container.innerHTML = images.map((src, index) => {
     const fileName = decodeURIComponent(src.split('/').pop().replace(/\.[^.]+$/, ''));
     const alt = `${type} ${fileName}`;
-    return `<div class="pv-carousel-item" data-type="${type}"><img src="${assetUrl(src)}" alt="${alt}" loading="lazy"></div>`;
+    const url = assetUrl(src);
+    const imgTag = index === 0
+      ? `<img src="${url}" alt="${alt}" decoding="async">`
+      : `<img data-src="${url}" alt="${alt}" decoding="async">`;
+    return `<div class="pv-carousel-item" data-type="${type}">${imgTag}</div>`;
   }).join('');
 }
 
 function buildWebCarouselItems(container, projects) {
-  container.innerHTML = projects.map(({ name, image, url }) => (
-    `<div class="pv-carousel-item" data-type="web" data-url="${url}">` +
-    `<img src="${assetUrl(image)}" alt="${name}" loading="lazy">` +
-    `<span class="pv-web-label">${name}</span>` +
-    `</div>`
-  )).join('');
+  container.innerHTML = projects.map(({ name, image, url }, index) => {
+    const imgUrl = assetUrl(image);
+    const imgTag = index === 0
+      ? `<img src="${imgUrl}" alt="${name}" decoding="async">`
+      : `<img data-src="${imgUrl}" alt="${name}" decoding="async">`;
+    return (
+      `<div class="pv-carousel-item" data-type="web" data-url="${url}">` +
+      imgTag +
+      `<span class="pv-web-label">${name}</span>` +
+      `</div>`
+    );
+  }).join('');
 }
 
 function buildVideoCarouselItems(container, projects) {
@@ -243,7 +263,10 @@ function init() {
 
     function updateCarousel() {
       const modIndex = ((currentIndex % items.length) + items.length) % items.length;
-      items.forEach((item, i) => item.classList.toggle('is-active', i === modIndex));
+      items.forEach((item, i) => {
+        item.classList.toggle('is-active', i === modIndex);
+        if (i === modIndex) ensureCarouselImage(item);
+      });
       if (options.onActiveChange) options.onActiveChange(items, modIndex);
     }
 

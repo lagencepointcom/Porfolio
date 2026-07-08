@@ -346,6 +346,7 @@ body.design-mode .custom-cursor { width: 50px; height: 50px; background: url('da
 
 .pv-portfolio-section h2 { font-size: clamp(2.5rem, 4.5vw, 3.25rem); letter-spacing: -0.02em; }
 .pv-portfolio-section > p { margin-top: 1rem !important; font-size: 1.15rem; line-height: 1.6; }
+.carousel-hint-desktop { margin-top: 1rem !important; font-size: 1.15rem; line-height: 1.6; color: var(--txt); }
 .pv-carousel-wrap { position: relative; max-width: 1100px; margin: 4rem auto 0; perspective: 1600px; height: 420px; display: flex; align-items: center; justify-content: center; cursor: grab; }
 .pv-carousel-wrap:active { cursor: grabbing; }
 
@@ -355,6 +356,7 @@ body.design-mode .custom-cursor { width: 50px; height: 50px; background: url('da
   height: auto;
   min-height: 430px;
   max-width: 900px;
+  touch-action: pan-y;
 }
 .pv-carousel-flat .pv-carousel-container {
   position: relative;
@@ -549,6 +551,7 @@ body.design-mode .custom-cursor { width: 50px; height: 50px; background: url('da
 @media (hover: none), (pointer: coarse) {
   body { cursor: auto; }
   .custom-cursor { display: none; }
+  .carousel-hint-desktop { display: none; }
 }
 
 @media (max-width: 1024px) {
@@ -698,13 +701,14 @@ body.design-mode .custom-cursor { width: 50px; height: 50px; background: url('da
   }
 
   .pv-contact-bg {
-    background-position: center 18%;
+    background-position: left center;
     background-size: cover;
     filter: brightness(0.95) saturate(1.05);
   }
 
   .pv-contact-overlay {
     background:
+      linear-gradient(90deg, rgba(10, 15, 29, 0.02) 0%, rgba(10, 15, 29, 0.08) 38%, rgba(10, 15, 29, 0.42) 62%, rgba(10, 15, 29, 0.88) 100%),
       linear-gradient(180deg, rgba(10, 15, 29, 0) 0%, rgba(10, 15, 29, 0.06) 32%, rgba(10, 15, 29, 0.48) 58%, rgba(10, 15, 29, 0.88) 100%);
   }
 
@@ -745,7 +749,7 @@ body.design-mode .custom-cursor { width: 50px; height: 50px; background: url('da
   }
 
   .pv-contact-bg {
-    background-position: center 12%;
+    background-position: left 8% center;
   }
 
   .pv-contact-inner {

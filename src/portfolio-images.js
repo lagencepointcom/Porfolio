@@ -112,6 +112,7 @@ export const portfolioImages = {
     "images/site-web/web_cisosalon.png",
     "images/site-web/web_lagencepointcom.png",
     "images/site-web/web_swissseniors.png",
-    "images/site-web/web_welshstud.png"
+    "images/site-web/web_welshstud.png",
+    "images/site-web/web-Freelancecomptabilite.png"
   ]
 };

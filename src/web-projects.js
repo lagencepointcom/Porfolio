@@ -19,4 +19,9 @@ export const webProjects = [
     image: 'images/site-web/web_cisosalon.png',
     url: 'https://www.cisosalon.ch',
   },
+  {
+    name: 'Freelance Comptabilité',
+    image: 'images/site-web/web-Freelancecomptabilite.png',
+    url: 'https://www.freelancecomptabilite.ch',
+  },
 ];

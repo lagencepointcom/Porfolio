@@ -44,7 +44,7 @@ export const videoProjects = [
     url: 'https://youtu.be/21tG0iBt_y8',
   },
   {
-    title: 'Freelance Comptabilité — Portfolio D. Puerro',
+    title: 'Motion Graphic Design — Portfolio D. Puerro',
     url: 'https://youtu.be/bBt5Jms2YDk',
   },
 ];

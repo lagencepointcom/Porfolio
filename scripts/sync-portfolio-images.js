@@ -13,23 +13,95 @@ const publicFolders = {
   web: 'public/images/site-web',
 };
 
-for (const [key, src] of Object.entries(sourceFolders)) {
-  const dest = publicFolders[key];
-  fs.mkdirSync(dest, { recursive: true });
-  if (!fs.existsSync(src)) continue;
+const imagePattern = /\.(png|jpe?g|webp|gif)$/i;
 
-  for (const file of fs.readdirSync(src)) {
-    if (!/\.(png|jpe?g|webp|gif)$/i.test(file)) continue;
-    fs.copyFileSync(path.join(src, file), path.join(dest, file));
+function collectImageFiles(dir, rootDir = dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectImageFiles(fullPath, rootDir, acc);
+      continue;
+    }
+    if (!imagePattern.test(entry.name)) continue;
+
+    const relativeDir = path.relative(rootDir, path.dirname(fullPath));
+    acc.push({ fullPath, fileName: entry.name, relativeDir });
   }
+
+  return acc;
+}
+
+function resolveDestName({ fileName, relativeDir }, usedNames) {
+  if (!relativeDir || relativeDir === '.') {
+    usedNames.add(fileName);
+    return fileName;
+  }
+
+  const folderSlug = relativeDir
+    .split(path.sep)
+    .filter(Boolean)
+    .join('-')
+    .replace(/\s+/g, '-');
+
+  let destName = `${folderSlug}-${fileName}`;
+  if (!usedNames.has(destName)) {
+    usedNames.add(destName);
+    return destName;
+  }
+
+  let index = 2;
+  while (usedNames.has(`${destName}-${index}`)) index += 1;
+  destName = `${destName}-${index}`;
+  usedNames.add(destName);
+  return destName;
+}
+
+function syncCategory(src, dest, { recursive = false } = {}) {
+  fs.mkdirSync(dest, { recursive: true });
+
+  const sources = recursive
+    ? collectImageFiles(src)
+    : fs.readdirSync(src, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && imagePattern.test(entry.name))
+      .map((entry) => ({
+        fullPath: path.join(src, entry.name),
+        fileName: entry.name,
+        relativeDir: '.',
+      }));
+
+  const usedNames = new Set();
+  const copiedNames = new Set();
+
+  for (const source of sources) {
+    const destName = resolveDestName(source, usedNames);
+    fs.copyFileSync(source.fullPath, path.join(dest, destName));
+    copiedNames.add(destName);
+  }
+
+  for (const file of fs.readdirSync(dest)) {
+    if (!imagePattern.test(file)) continue;
+    if (!copiedNames.has(file)) {
+      fs.unlinkSync(path.join(dest, file));
+    }
+  }
+
+  return [...copiedNames].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
 
 const out = {};
-for (const [key, folder] of Object.entries(publicFolders)) {
-  out[key] = fs.readdirSync(folder)
-    .filter((f) => /\.(png|jpe?g|webp|gif)$/i.test(f))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-    .map((f) => `images/${path.basename(folder)}/${encodeURIComponent(f)}`);
+
+for (const [key, src] of Object.entries(sourceFolders)) {
+  const dest = publicFolders[key];
+  if (!fs.existsSync(src)) {
+    out[key] = [];
+    continue;
+  }
+
+  const recursive = key === 'graphisme';
+  const files = syncCategory(src, dest, { recursive });
+  out[key] = files.map((f) => `images/${path.basename(dest)}/${encodeURIComponent(f)}`);
 }
 
 fs.writeFileSync(

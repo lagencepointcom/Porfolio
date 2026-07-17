@@ -78,15 +78,45 @@ function youtubeThumbUrl(id) {
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 }
 
+function waitForCarouselItem(item, timeoutMs = 5000) {
+  ensureCarouselImage(item);
+  const img = item.querySelector('img:not(.pv-video-thumb)');
+  if (!img) return Promise.resolve();
+
+  if (img.classList.contains('is-ready') || (img.complete && img.naturalWidth > 0)) {
+    img.classList.add('is-ready');
+    item.classList.remove('is-loading');
+    return Promise.resolve();
+  }
+
+  item.classList.add('is-loading');
+
+  return new Promise((resolve) => {
+    const done = () => {
+      img.classList.add('is-ready');
+      item.classList.remove('is-loading');
+      resolve();
+    };
+    img.addEventListener('load', done, { once: true });
+    img.addEventListener('error', done, { once: true });
+    setTimeout(done, timeoutMs);
+  });
+}
+
 function ensureCarouselImage(item) {
   const img = item.querySelector('img:not(.pv-video-thumb)');
   if (!img) return;
 
-  const reveal = () => img.classList.add('is-ready');
+  const reveal = () => {
+    img.classList.add('is-ready');
+    item.classList.remove('is-loading');
+  };
 
   const pendingSrc = img.getAttribute('data-src');
   if (pendingSrc) {
+    item.classList.add('is-loading');
     img.addEventListener('load', reveal, { once: true });
+    img.addEventListener('error', reveal, { once: true });
     img.src = pendingSrc;
     img.removeAttribute('data-src');
     img.removeAttribute('loading');
@@ -94,7 +124,11 @@ function ensureCarouselImage(item) {
   }
 
   if (img.complete && img.naturalWidth > 0) reveal();
-  else img.addEventListener('load', reveal, { once: true });
+  else {
+    item.classList.add('is-loading');
+    img.addEventListener('load', reveal, { once: true });
+    img.addEventListener('error', reveal, { once: true });
+  }
 }
 
 function getCarouselImageSrc(img) {
@@ -130,13 +164,56 @@ function preloadCarouselNeighbors(items, modIndex) {
   });
 }
 
-function buildCarouselItems(container, images, type) {
+function preloadCarouselBatch(items, startIndex = 0, batchSize = 6) {
+  for (let i = startIndex; i < Math.min(items.length, startIndex + batchSize); i += 1) {
+    ensureCarouselImage(items[i]);
+  }
+}
+
+function setupCarouselSectionPreload(section) {
+  const container = section.querySelector('.pv-carousel-container');
+  if (!container) return;
+
+  const items = container.querySelectorAll('.pv-carousel-item');
+  if (!items.length) return;
+
+  preloadCarouselBatch(items, 0, 8);
+
+  const loadRest = () => {
+    let index = 8;
+    const step = () => {
+      preloadCarouselBatch(items, index, 6);
+      index += 6;
+      if (index < items.length) {
+        if ('requestIdleCallback' in window) requestIdleCallback(step, { timeout: 1500 });
+        else setTimeout(step, 120);
+      }
+    };
+    step();
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    loadRest();
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries[0]?.isIntersecting) return;
+    observer.disconnect();
+    loadRest();
+  }, { rootMargin: '500px 0px' });
+
+  observer.observe(section);
+}
+
+function buildCarouselItems(container, images, type, { eagerCount = 8 } = {}) {
   container.innerHTML = images.map((src, index) => {
     const fileName = decodeURIComponent(src.split('/').pop().replace(/\.[^.]+$/, ''));
     const alt = `${type} ${fileName}`;
     const url = assetUrl(src);
-    const imgTag = index === 0
-      ? `<img src="${url}" alt="${alt}" decoding="async">`
+    const eager = index < eagerCount;
+    const imgTag = eager
+      ? `<img src="${url}" alt="${alt}" decoding="async" fetchpriority="${index === 0 ? 'high' : 'auto'}">`
       : `<img data-src="${url}" alt="${alt}" decoding="async">`;
     return `<div class="pv-carousel-item" data-type="${type}">${imgTag}</div>`;
   }).join('');
@@ -145,9 +222,7 @@ function buildCarouselItems(container, images, type) {
 function buildWebCarouselItems(container, projects) {
   container.innerHTML = projects.map(({ name, image, url }, index) => {
     const imgUrl = assetUrl(image);
-    const imgTag = index === 0
-      ? `<img src="${imgUrl}" alt="${name}" decoding="async">`
-      : `<img data-src="${imgUrl}" alt="${name}" decoding="async">`;
+    const imgTag = `<img src="${imgUrl}" alt="${name}" decoding="async" fetchpriority="${index === 0 ? 'high' : 'auto'}">`;
     return (
       `<div class="pv-carousel-item" data-type="web" data-url="${url}">` +
       imgTag +
@@ -164,7 +239,7 @@ function buildVideoCarouselItems(container, projects) {
     return (
       `<div class="pv-carousel-item" data-type="video" data-video-id="${id}" data-url="${watchUrl}">` +
       `<div class="pv-video-media">` +
-      `<img class="pv-video-thumb" src="${youtubeThumbUrl(id)}" alt="${title}" loading="lazy">` +
+      `<img class="pv-video-thumb" src="${youtubeThumbUrl(id)}" alt="${title}" decoding="async">` +
       `</div>` +
       `<span class="pv-video-label">${title}</span>` +
       `</div>`
@@ -234,8 +309,12 @@ function init() {
     buildWebCarouselItems(webCarousel, webProjects);
   }
   if (designCarousel && portfolioImages.graphisme?.length) {
-    buildCarouselItems(designCarousel, portfolioImages.graphisme, 'image');
+    buildCarouselItems(designCarousel, portfolioImages.graphisme, 'image', { eagerCount: portfolioImages.graphisme.length });
   }
+
+  document.querySelectorAll('.pv-portfolio-section').forEach((section) => {
+    setupCarouselSectionPreload(section);
+  });
 
   const cursor = document.querySelector('.custom-cursor');
 
@@ -349,6 +428,7 @@ function init() {
         item.classList.toggle('is-active', i === modIndex);
       });
       preloadCarouselNeighbors(items, modIndex);
+      waitForCarouselItem(items[modIndex]);
       if (options.onActiveChange) options.onActiveChange(items, modIndex);
     }
 
@@ -387,6 +467,7 @@ function init() {
     function spinCarouselAleatoire() {
       if (isSpinning) return;
       isSpinning = true;
+      wrap.classList.add('is-carousel-busy');
 
       let pools = [];
       items.forEach((_, i) => { if (!historySeen.includes(i)) pools.push(i); });
@@ -399,19 +480,15 @@ function init() {
       historySeen.push(targetIndex);
       ensureCarouselImage(items[targetIndex]);
 
-      let step = 0;
-      const totalSteps = 18 + Math.floor(Math.random() * 8);
-      const tick = setInterval(() => {
-        currentIndex++;
-        updateCarousel();
-        step++;
-        if (step >= totalSteps) {
-          clearInterval(tick);
+      const spinDuration = 2200 + Math.floor(Math.random() * 900);
+      window.setTimeout(() => {
+        waitForCarouselItem(items[targetIndex]).then(() => {
           currentIndex = targetIndex;
           updateCarousel();
+          wrap.classList.remove('is-carousel-busy');
           isSpinning = false;
-        }
-      }, 100);
+        });
+      }, spinDuration);
     }
 
     if (spinBtn) spinBtn.addEventListener('click', spinCarouselAleatoire);

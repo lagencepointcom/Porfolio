@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { optimizeAllPublicImages } from './optimize-portfolio-images.js';
 
 const sourceFolders = {
   photos: 'Images/Porfolio photos',
@@ -12,6 +13,14 @@ const publicFolders = {
   graphisme: 'public/images/graphisme',
   web: 'public/images/site-web',
 };
+
+const webProjectsConfig = [
+  { name: 'Swiss Seniors', stem: 'web_swissseniors', url: 'https://www.swissseniors.ch' },
+  { name: 'Welsh Stud', stem: 'web_welshstud', url: 'https://www.welshstud.ch' },
+  { name: "L'Agence Point Com", stem: 'web_lagencepointcom', url: 'https://www.lagencepointcom.ch' },
+  { name: 'CISO Salon', stem: 'web_cisosalon', url: 'https://www.cisosalon.ch' },
+  { name: 'Freelance Comptabilité', stem: 'web-Freelancecomptabilite', url: 'https://www.freelancecomptabilite.ch' },
+];
 
 const imagePattern = /\.(png|jpe?g|webp|gif)$/i;
 
@@ -72,41 +81,80 @@ function syncCategory(src, dest, { recursive = false } = {}) {
       }));
 
   const usedNames = new Set();
-  const copiedNames = new Set();
 
   for (const source of sources) {
     const destName = resolveDestName(source, usedNames);
     fs.copyFileSync(source.fullPath, path.join(dest, destName));
-    copiedNames.add(destName);
   }
 
-  for (const file of fs.readdirSync(dest)) {
-    if (!imagePattern.test(file)) continue;
-    if (!copiedNames.has(file)) {
-      fs.unlinkSync(path.join(dest, file));
+  return sources.length;
+}
+
+function listPublicImages(folder) {
+  if (!fs.existsSync(folder)) return [];
+  return fs.readdirSync(folder)
+    .filter((file) => imagePattern.test(file))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function writePortfolioImagesManifest() {
+  const out = {};
+  for (const [key, folder] of Object.entries(publicFolders)) {
+    const files = listPublicImages(folder);
+    out[key] = files.map((f) => `images/${path.basename(folder)}/${encodeURIComponent(f)}`);
+  }
+
+  fs.writeFileSync(
+    'src/portfolio-images.js',
+    `export const portfolioImages = ${JSON.stringify(out, null, 2)};\n`,
+  );
+
+  return out;
+}
+
+function writeWebProjectsManifest() {
+  const webDir = publicFolders.web;
+  const files = listPublicImages(webDir);
+
+  const projects = webProjectsConfig.map(({ name, stem, url }) => {
+    const match = files.find((file) => file.startsWith(stem));
+    if (!match) {
+      throw new Error(`Image web introuvable pour « ${name} » (${stem})`);
     }
-  }
+    return {
+      name,
+      image: `images/site-web/${encodeURIComponent(match)}`,
+      url,
+    };
+  });
 
-  return [...copiedNames].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  fs.writeFileSync(
+    'src/web-projects.js',
+    `export const webProjects = ${JSON.stringify(projects, null, 2)};\n`,
+  );
 }
 
-const out = {};
+async function main() {
+  let copied = 0;
 
-for (const [key, src] of Object.entries(sourceFolders)) {
-  const dest = publicFolders[key];
-  if (!fs.existsSync(src)) {
-    out[key] = [];
-    continue;
+  for (const [key, src] of Object.entries(sourceFolders)) {
+    const dest = publicFolders[key];
+    if (!fs.existsSync(src)) continue;
+    const recursive = key === 'graphisme';
+    copied += syncCategory(src, dest, { recursive });
   }
 
-  const recursive = key === 'graphisme';
-  const files = syncCategory(src, dest, { recursive });
-  out[key] = files.map((f) => `images/${path.basename(dest)}/${encodeURIComponent(f)}`);
+  console.log(`Copied ${copied} source files to public/`);
+
+  await optimizeAllPublicImages();
+
+  const manifest = writePortfolioImagesManifest();
+  writeWebProjectsManifest();
+
+  console.log(`Synced: ${manifest.photos.length} photos, ${manifest.graphisme.length} graphisme, ${manifest.web.length} web`);
 }
 
-fs.writeFileSync(
-  'src/portfolio-images.js',
-  `export const portfolioImages = ${JSON.stringify(out, null, 2)};\n`,
-);
-
-console.log(`Synced: ${out.photos.length} photos, ${out.graphisme.length} graphisme, ${out.web.length} web`);
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

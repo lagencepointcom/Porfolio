@@ -9,6 +9,19 @@ function assetUrl(path) {
   return `${import.meta.env.BASE_URL}${path}`;
 }
 
+function preferWebpAssets(paths = []) {
+  const webpStems = new Set(
+    paths
+      .filter((src) => src.toLowerCase().endsWith('.webp'))
+      .map((src) => src.replace(/\.webp$/i, '')),
+  );
+  return paths.filter((src) => {
+    if (src.toLowerCase().endsWith('.webp')) return true;
+    const stem = src.replace(/\.(png|jpe?g|gif)$/i, '');
+    return !webpStems.has(stem);
+  });
+}
+
 const BACKGROUNDS = [
   {
     variable: '--hero-bg-image',
@@ -300,7 +313,7 @@ function init() {
   const designCarousel = document.querySelector('#motion-design .pv-carousel-container');
 
   if (photoCarousel && portfolioImages.photos?.length) {
-    buildCarouselItems(photoCarousel, portfolioImages.photos, 'image');
+    buildCarouselItems(photoCarousel, preferWebpAssets(portfolioImages.photos), 'image');
   }
   if (videoCarousel && videoProjects.length) {
     buildVideoCarouselItems(videoCarousel, videoProjects);
@@ -309,7 +322,8 @@ function init() {
     buildWebCarouselItems(webCarousel, webProjects);
   }
   if (designCarousel && portfolioImages.graphisme?.length) {
-    buildCarouselItems(designCarousel, portfolioImages.graphisme, 'image', { eagerCount: portfolioImages.graphisme.length });
+    const graphismeImages = preferWebpAssets(portfolioImages.graphisme);
+    buildCarouselItems(designCarousel, graphismeImages, 'image', { eagerCount: graphismeImages.length });
   }
 
   document.querySelectorAll('.pv-portfolio-section').forEach((section) => {

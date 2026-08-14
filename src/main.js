@@ -87,6 +87,10 @@ function youtubeWatchUrl(id) {
   return `https://www.youtube.com/watch?v=${id}`;
 }
 
+function youtubeThumbUrl(id) {
+  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
+
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }

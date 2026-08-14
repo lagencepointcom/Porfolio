@@ -115,9 +115,21 @@ function syncCategory(src, dest, { recursive = false, clean = false } = {}) {
 
 function listPublicImages(folder) {
   if (!fs.existsSync(folder)) return [];
-  return fs.readdirSync(folder)
+  const files = fs.readdirSync(folder)
     .filter((file) => imagePattern.test(file))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  const webpStems = new Set(
+    files
+      .filter((file) => file.toLowerCase().endsWith('.webp'))
+      .map((file) => path.parse(file).name),
+  );
+
+  return files.filter((file) => {
+    const { name, ext } = path.parse(file);
+    if (webpStems.has(name) && ext.toLowerCase() !== '.webp') return false;
+    return true;
+  });
 }
 
 function writePortfolioImagesManifest() {
@@ -164,8 +176,7 @@ async function main() {
     const dest = publicFolders[key];
     if (!fs.existsSync(src)) continue;
     const recursive = key === 'graphisme';
-    const clean = key === 'graphisme';
-    copied += syncCategory(src, dest, { recursive, clean });
+    copied += syncCategory(src, dest, { recursive, clean: true });
   }
 
   console.log(`Copied ${copied} source files to public/`);

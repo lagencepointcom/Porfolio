@@ -13,6 +13,6 @@ This repo is a static Vite portfolio (`porfolio`). There is no backend, database
 ### Notes
 
 - Dependencies: `npm ci` (Node 22, lockfile present).
-- Linux is case-sensitive. Public graphisme files such as `public/images/graphisme/Commune-de-chevroux-paddle.webp` must match the paths in `src/portfolio-images.js` exactly.
+- Linux is case-sensitive: paths in `src/portfolio-images.js` must match files in `public/images` exactly (including case). The photo carousel must list only files that exist (WebP after `images:sync`).
 - After adding source images under `Images/`, regenerate public assets with `npm run images:sync` (then `npm run images:optimize` if you only need compression).
 - GitHub Pages builds use `npm run build:gh-pages` (`GITHUB_PAGES=true`, base `/Porfolio/`). Local dev uses `base: '/'`.

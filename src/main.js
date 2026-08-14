@@ -87,8 +87,25 @@ function youtubeWatchUrl(id) {
   return `https://www.youtube.com/watch?v=${id}`;
 }
 
-function youtubeThumbUrl(id) {
-  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function pickShuffleSequence(itemCount, fromIndex, toIndex, steps = 11) {
+  const sequence = [];
+  if (itemCount <= 1) return [toIndex];
+
+  for (let i = 0; i < steps - 1; i += 1) {
+    let idx = Math.floor(Math.random() * itemCount);
+    let guard = 0;
+    while ((idx === fromIndex || idx === toIndex || idx === sequence[sequence.length - 1]) && guard < 8) {
+      idx = Math.floor(Math.random() * itemCount);
+      guard += 1;
+    }
+    sequence.push(idx);
+  }
+  sequence.push(toIndex);
+  return sequence;
 }
 
 function waitForCarouselItem(item, timeoutMs = 5000) {
@@ -332,9 +349,10 @@ function init() {
 
   const cursor = document.querySelector('.custom-cursor');
 
+  const wheelLoops = 8;
   document.querySelectorAll('.wheel-reel').forEach((reel) => {
     let htmlContent = '';
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < wheelLoops; i++) {
       categories.forEach((cat) => {
         htmlContent += `<div class="reel-item">${cat}</div>`;
       });
@@ -377,30 +395,28 @@ function init() {
 
       items.forEach((it) => { it.className = 'reel-item'; });
 
-      let targetIndex = 45;
-      for (let i = items.length - 1; i >= 0; i--) {
-        if (items[i].textContent === targetValue) {
-          targetIndex = i;
-          break;
-        }
-      }
-
+      const categoryIndex = Math.max(0, categories.indexOf(targetValue));
+      const targetIndex = (2 * categories.length) + categoryIndex;
       const finalPosition = -(targetIndex * itemHeight);
-      reel.style.filter = 'blur(5px)';
+      reel.style.filter = 'blur(4px)';
 
+      const wheelDuration = 2000;
       const anim = reel.animate([
         { transform: 'translateY(0px)' },
         { transform: `translateY(${finalPosition}px)` },
       ], {
-        duration: 4800,
-        easing: 'cubic-bezier(0.05, 0.9, 0.1, 1)',
+        duration: wheelDuration,
+        easing: 'cubic-bezier(0.12, 0.72, 0.18, 1)',
         fill: 'forwards',
       });
 
       setTimeout(() => {
         reel.style.filter = 'blur(0px)';
-        items[targetIndex].classList.add('highlight');
-      }, 4000);
+      }, 1100);
+
+      setTimeout(() => {
+        items[targetIndex]?.classList.add('highlight');
+      }, 1500);
 
       anim.onfinish = () => {
         const flash = document.querySelector('.camera-flash');
@@ -478,10 +494,21 @@ function init() {
       hasDragged = false;
     });
 
-    function spinCarouselAleatoire() {
+    function pauseVideoPreviews() {
+      items.forEach((item) => {
+        const media = item.querySelector('.pv-video-media');
+        if (!media) return;
+        const iframe = media.querySelector('iframe');
+        const thumb = media.querySelector('.pv-video-thumb');
+        if (iframe) iframe.remove();
+        if (thumb) thumb.classList.remove('is-hidden');
+      });
+    }
+
+    async function spinCarouselAleatoire() {
       if (isSpinning) return;
       isSpinning = true;
-      wrap.classList.add('is-carousel-busy');
+      wrap.classList.add('is-shuffling');
 
       let pools = [];
       items.forEach((_, i) => { if (!historySeen.includes(i)) pools.push(i); });
@@ -490,19 +517,52 @@ function init() {
         items.forEach((_, i) => pools.push(i));
       }
 
-      const targetIndex = pools[Math.floor(Math.random() * pools.length)];
+      const fromIndex = ((currentIndex % items.length) + items.length) % items.length;
+      let targetIndex = pools[Math.floor(Math.random() * pools.length)];
+      if (targetIndex === fromIndex && pools.length > 1) {
+        targetIndex = pools.find((i) => i !== fromIndex) ?? targetIndex;
+      }
       historySeen.push(targetIndex);
-      ensureCarouselImage(items[targetIndex]);
 
-      const spinDuration = 2200 + Math.floor(Math.random() * 900);
-      window.setTimeout(() => {
-        waitForCarouselItem(items[targetIndex]).then(() => {
-          currentIndex = targetIndex;
-          updateCarousel();
-          wrap.classList.remove('is-carousel-busy');
-          isSpinning = false;
-        });
-      }, spinDuration);
+      const sequence = pickShuffleSequence(items.length, fromIndex, targetIndex);
+      const flying = new Set(sequence);
+      sequence.forEach((index) => ensureCarouselImage(items[index]));
+      ensureCarouselImage(items[fromIndex]);
+      pauseVideoPreviews();
+
+      const front = items[fromIndex];
+      const deckCards = [];
+
+      try {
+        front.classList.add('is-shuffle-front');
+
+        for (let i = 0; i < items.length && deckCards.length < 2; i += 1) {
+          if (i === fromIndex || flying.has(i)) continue;
+          items[i].classList.add(`is-deck-${deckCards.length + 1}`);
+          ensureCarouselImage(items[i]);
+          deckCards.push(items[i]);
+        }
+
+        const stepMs = 90;
+        for (let s = 0; s < sequence.length; s += 1) {
+          const item = items[sequence[s]];
+          const isLast = s === sequence.length - 1;
+          item.classList.add('is-shuffle-card', isLast ? 'is-riffle-land' : (s % 2 === 0 ? 'is-riffle-right' : 'is-riffle-left'));
+          await wait(isLast ? 280 : stepMs);
+          if (!isLast) {
+            item.classList.remove('is-shuffle-card', 'is-riffle-left', 'is-riffle-right');
+          }
+        }
+
+        currentIndex = targetIndex;
+        updateCarousel();
+      } finally {
+        front.classList.remove('is-shuffle-front');
+        deckCards.forEach((card, index) => card.classList.remove(`is-deck-${index + 1}`));
+        items[targetIndex].classList.remove('is-shuffle-card', 'is-riffle-land', 'is-riffle-left', 'is-riffle-right');
+        wrap.classList.remove('is-shuffling');
+        isSpinning = false;
+      }
     }
 
     if (spinBtn) spinBtn.addEventListener('click', spinCarouselAleatoire);
